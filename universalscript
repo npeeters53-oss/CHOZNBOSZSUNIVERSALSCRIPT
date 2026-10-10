@@ -1,0 +1,294 @@
+
+-- 🍍 HACK FOR BRAINROTS
+-- Draggable pineapple + PINEAPPLESCRIPTS menu + speed slider
+
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+local NORMAL_SPEED = 16
+local multiplier = 1
+local MIN_MULTIPLIER = 1
+local MAX_MULTIPLIER = 5
+
+-- Remove the previous GUI if it exists
+local oldGui = playerGui:FindFirstChild("PineappleHackGui")
+if oldGui then
+	oldGui:Destroy()
+end
+
+-- Screen GUI
+local gui = Instance.new("ScreenGui")
+gui.Name = "PineappleHackGui"
+gui.ResetOnSpawn = false
+gui.Parent = playerGui
+
+-- Helper: rounded corners
+local function round(object, radius)
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, radius)
+	corner.Parent = object
+end
+
+-- Helper: outline
+local function outline(object, color, thickness)
+	local stroke = Instance.new("UIStroke")
+	stroke.Color = color
+	stroke.Thickness = thickness
+	stroke.Parent = object
+end
+
+-- Floating pineapple button
+local pineapple = Instance.new("TextButton")
+pineapple.Name = "PineappleButton"
+pineapple.Size = UDim2.fromOffset(64, 64)
+pineapple.Position = UDim2.new(0, 25, 0.5, -32)
+pineapple.BackgroundColor3 = Color3.fromRGB(25, 27, 38)
+pineapple.Text = "🍍"
+pineapple.TextSize = 35
+pineapple.Font = Enum.Font.GothamBold
+pineapple.ZIndex = 3
+pineapple.Parent = gui
+round(pineapple, 18)
+outline(pineapple, Color3.fromRGB(255, 190, 40), 2)
+
+-- Main menu
+local menu = Instance.new("Frame")
+menu.Name = "PineappleScriptsMenu"
+menu.Size = UDim2.new(0, 340, 0, 220)
+menu.Position = UDim2.new(0.5, -170, 0.5, -110)
+menu.BackgroundColor3 = Color3.fromRGB(22, 24, 34)
+menu.Visible = false
+menu.Parent = gui
+round(menu, 16)
+outline(menu, Color3.fromRGB(255, 190, 40), 2)
+
+-- Menu title
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, -60, 0, 45)
+title.Position = UDim2.new(0, 15, 0, 8)
+title.BackgroundTransparency = 1
+title.Text = "🍍 PINEAPPLESCRIPTS"
+title.TextColor3 = Color3.fromRGB(255, 200, 55)
+title.TextSize = 21
+title.Font = Enum.Font.GothamBold
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Parent = menu
+
+-- Close button
+local close = Instance.new("TextButton")
+close.Size = UDim2.fromOffset(32, 32)
+close.Position = UDim2.new(1, -42, 0, 12)
+close.BackgroundColor3 = Color3.fromRGB(55, 58, 72)
+close.Text = "X"
+close.TextColor3 = Color3.new(1, 1, 1)
+close.TextSize = 16
+close.Font = Enum.Font.GothamBold
+close.Parent = menu
+round(close, 8)
+
+close.Activated:Connect(function()
+	menu.Visible = false
+end)
+
+-- Speed label
+local speedLabel = Instance.new("TextLabel")
+speedLabel.Size = UDim2.new(1, -30, 0, 30)
+speedLabel.Position = UDim2.new(0, 15, 0, 65)
+speedLabel.BackgroundTransparency = 1
+speedLabel.TextColor3 = Color3.new(1, 1, 1)
+speedLabel.TextSize = 17
+speedLabel.Font = Enum.Font.GothamSemibold
+speedLabel.TextXAlignment = Enum.TextXAlignment.Left
+speedLabel.Parent = menu
+
+-- Slider track
+local track = Instance.new("Frame")
+track.Size = UDim2.new(1, -40, 0, 10)
+track.Position = UDim2.new(0, 20, 0, 120)
+track.BackgroundColor3 = Color3.fromRGB(65, 68, 82)
+track.BorderSizePixel = 0
+track.Active = true
+track.Parent = menu
+round(track, 5)
+
+-- Slider fill
+local fill = Instance.new("Frame")
+fill.Size = UDim2.new(0, 0, 1, 0)
+fill.BackgroundColor3 = Color3.fromRGB(255, 190, 40)
+fill.BorderSizePixel = 0
+fill.Parent = track
+round(fill, 5)
+
+-- Slider knob
+local knob = Instance.new("TextButton")
+knob.Size = UDim2.fromOffset(22, 22)
+knob.AnchorPoint = Vector2.new(0.5, 0.5)
+knob.Position = UDim2.new(0, 0, 0.5, 0)
+knob.BackgroundColor3 = Color3.fromRGB(255, 220, 100)
+knob.Text = ""
+knob.Active = true
+knob.Parent = track
+round(knob, 11)
+outline(knob, Color3.fromRGB(255, 255, 255), 1)
+
+-- Speed information
+local info = Instance.new("TextLabel")
+info.Size = UDim2.new(1, -30, 0, 25)
+info.Position = UDim2.new(0, 15, 0, 150)
+info.BackgroundTransparency = 1
+info.TextColor3 = Color3.fromRGB(180, 185, 200)
+info.TextSize = 13
+info.Font = Enum.Font.Gotham
+info.Text = "Drag the slider to change your speed"
+info.Parent = menu
+
+-- Apply speed to the player's character
+local function applySpeed()
+	local character = player.Character
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+
+	if humanoid then
+		humanoid.WalkSpeed = NORMAL_SPEED * multiplier
+	end
+end
+
+local function updateSlider(value)
+	multiplier = math.clamp(
+		math.floor(value * 10 + 0.5) / 10,
+		MIN_MULTIPLIER,
+		MAX_MULTIPLIER
+	)
+
+	local percent = (multiplier - MIN_MULTIPLIER)
+		/ (MAX_MULTIPLIER - MIN_MULTIPLIER)
+
+	fill.Size = UDim2.new(percent, 0, 1, 0)
+	knob.Position = UDim2.new(percent, 0, 0.5, 0)
+
+	speedLabel.Text = string.format(
+		"Speed Multiplier: %.1fx", multiplier
+	)
+
+	applySpeed()
+end
+
+local function setFromScreenX(screenX)
+	local left = track.AbsolutePosition.X
+	local width = track.AbsoluteSize.X
+
+	if width <= 0 then
+		return
+	end
+
+	local percent = math.clamp((screenX - left) / width, 0, 1)
+	local value = MIN_MULTIPLIER
+		+ percent * (MAX_MULTIPLIER - MIN_MULTIPLIER)
+
+	updateSlider(value)
+end
+
+local sliding = false
+
+local function startSliding(input)
+	sliding = true
+	setFromScreenX(input.Position.X)
+end
+
+knob.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1
+		or input.UserInputType == Enum.UserInputType.Touch then
+		startSliding(input)
+	end
+end)
+
+track.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1
+		or input.UserInputType == Enum.UserInputType.Touch then
+		startSliding(input)
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if sliding and (
+		input.UserInputType == Enum.UserInputType.MouseMovement
+			or input.UserInputType == Enum.UserInputType.Touch
+		) then
+		setFromScreenX(input.Position.X)
+	end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1
+		or input.UserInputType == Enum.UserInputType.Touch then
+		sliding = false
+	end
+end)
+
+-- Toggle menu when the pineapple is clicked
+pineapple.Activated:Connect(function()
+	menu.Visible = not menu.Visible
+end)
+
+-- Drag the pineapple button
+local dragging = false
+local dragStart
+local buttonStart
+local dragInput
+local moved = false
+
+pineapple.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1
+		or input.UserInputType == Enum.UserInputType.Touch then
+		dragging = true
+		moved = false
+		dragStart = input.Position
+		buttonStart = pineapple.Position
+
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				dragging = false
+			end
+		end)
+	end
+end)
+
+pineapple.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement
+		or input.UserInputType == Enum.UserInputType.Touch then
+		dragInput = input
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if dragging and (
+		input == dragInput
+			or input.UserInputType == Enum.UserInputType.MouseMovement
+		) then
+		local delta = input.Position - dragStart
+
+		if math.abs(delta.X) > 5 or math.abs(delta.Y) > 5 then
+			moved = true
+		end
+
+		pineapple.Position = UDim2.new(
+			buttonStart.X.Scale,
+			buttonStart.X.Offset + delta.X,
+			buttonStart.Y.Scale,
+			buttonStart.Y.Offset + delta.Y
+		)
+	end
+end)
+
+-- Reapply the selected multiplier after respawning
+player.CharacterAdded:Connect(function(character)
+	local humanoid = character:WaitForChild("Humanoid")
+	humanoid.WalkSpeed = NORMAL_SPEED * multiplier
+end)
+
+-- Start at 1x speed
+updateSlider(1)
+
+print("🍍 PINEAPPLESCRIPTS loaded!")
