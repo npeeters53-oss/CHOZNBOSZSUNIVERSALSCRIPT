@@ -1,541 +1,124 @@
 
--- PineappleScripts | Complete Replacement LocalScript
--- Place inside StarterPlayer > StarterPlayerScripts
+-- PineappleScripts - GUI visibility fix
+-- Place in StarterPlayer > StarterPlayerScripts
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
-local RunService = game:GetService("RunService")
 
-local localPlayer = Players.LocalPlayer
-local playerGui = localPlayer:WaitForChild("PlayerGui")
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
 
+-- Remove the old version
 local oldGui = playerGui:FindFirstChild("PineappleHackGui")
-if oldGui then oldGui:Destroy() end
+if oldGui then
+    oldGui:Destroy()
+end
 
+-- Screen GUI
 local gui = Instance.new("ScreenGui")
 gui.Name = "PineappleHackGui"
 gui.ResetOnSpawn = false
+gui.IgnoreGuiInset = true
+gui.DisplayOrder = 999
+gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 gui.Parent = playerGui
 
-local speedMultiplier = 1
-local highlightEnabled = false
-local lockOnEnabled = false
-local lockTarget = nil
-local playerConnections = {}
+-- Floating pineapple button
+local pineapple = Instance.new("TextButton")
+pineapple.Name = "PineappleButton"
+pineapple.Size = UDim2.fromOffset(64, 64)
+pineapple.Position = UDim2.new(0, 25, 0.5, -32)
+pineapple.BackgroundColor3 = Color3.fromRGB(35, 28, 18)
+pineapple.Text = "🍍"
+pineapple.TextSize = 34
+pineapple.Font = Enum.Font.GothamBold
+pineapple.TextColor3 = Color3.fromRGB(255, 210, 70)
+pineapple.Visible = true
+pineapple.Active = true
+pineapple.ZIndex = 10
+pineapple.Parent = gui
 
-local function create(className, properties, parent)
-    local obj = Instance.new(className)
-    for key, value in pairs(properties) do
-        obj[key] = value
-    end
-    obj.Parent = parent
-    return obj
-end
+local buttonCorner = Instance.new("UICorner")
+buttonCorner.CornerRadius = UDim.new(0, 16)
+buttonCorner.Parent = pineapple
 
-local function roundify(obj, radius)
-    create("UICorner", {
-        CornerRadius = UDim.new(0, radius or 8)
-    }, obj)
-end
-
-local function outline(obj, color, thickness)
-    create("UIStroke", {
-        Color = color or Color3.fromRGB(255, 190, 50),
-        Thickness = thickness or 2
-    }, obj)
-end
-
-local function makeDraggable(object, handle)
-    local dragging = false
-    local dragStart
-    local startPosition
-    handle = handle or object
-
-    handle.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1
-            or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true
-            dragStart = input.Position
-            startPosition = object.Position
-        end
-    end)
-
-    UserInputService.InputChanged:Connect(function(input)
-        if dragging and (
-            input.UserInputType == Enum.UserInputType.MouseMovement
-            or input.UserInputType == Enum.UserInputType.Touch
-        ) then
-            local delta = input.Position - dragStart
-            object.Position = UDim2.new(
-                startPosition.X.Scale,
-                startPosition.X.Offset + delta.X,
-                startPosition.Y.Scale,
-                startPosition.Y.Offset + delta.Y
-            )
-        end
-    end)
-
-    UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1
-            or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = false
-        end
-    end)
-end
-
--- Pineapple button
-local pineapple = create("TextButton", {
-    Name = "PineappleButton",
-    Size = UDim2.fromOffset(58, 58),
-    Position = UDim2.new(0, 25, 0.5, -29),
-    BackgroundColor3 = Color3.fromRGB(35, 28, 18),
-    Text = "🍍",
-    TextSize = 32,
-    Font = Enum.Font.GothamBold,
-    TextColor3 = Color3.fromRGB(255, 210, 70)
-}, gui)
-roundify(pineapple, 16)
-outline(pineapple)
-makeDraggable(pineapple)
+local buttonStroke = Instance.new("UIStroke")
+buttonStroke.Color = Color3.fromRGB(255, 190, 50)
+buttonStroke.Thickness = 2
+buttonStroke.Parent = pineapple
 
 -- Main menu
-local menu = create("Frame", {
-    Name = "PineappleScriptsMenu",
-    Size = UDim2.fromOffset(420, 330),
-    Position = UDim2.new(0.5, -210, 0.5, -165),
-    BackgroundColor3 = Color3.fromRGB(24, 24, 30),
-    Visible = false
-}, gui)
-roundify(menu, 12)
-outline(menu)
+local menu = Instance.new("Frame")
+menu.Name = "PineappleScriptsMenu"
+menu.Size = UDim2.fromOffset(420, 330)
+menu.Position = UDim2.new(0.5, -210, 0.5, -165)
+menu.BackgroundColor3 = Color3.fromRGB(24, 24, 30)
+menu.Visible = false
+menu.Active = true
+menu.ZIndex = 2
+menu.Parent = gui
 
-local header = create("Frame", {
-    Size = UDim2.new(1, 0, 0, 45),
-    BackgroundColor3 = Color3.fromRGB(39, 34, 25)
-}, menu)
-roundify(header, 12)
+local menuCorner = Instance.new("UICorner")
+menuCorner.CornerRadius = UDim.new(0, 12)
+menuCorner.Parent = menu
 
-create("TextLabel", {
-    Size = UDim2.new(1, -55, 1, 0),
-    Position = UDim2.fromOffset(12, 0),
-    BackgroundTransparency = 1,
-    Text = "🍍 PINEAPPLESCRIPTS",
-    TextColor3 = Color3.fromRGB(255, 205, 70),
-    TextSize = 18,
-    Font = Enum.Font.GothamBold,
-    TextXAlignment = Enum.TextXAlignment.Left
-}, header)
+local menuStroke = Instance.new("UIStroke")
+menuStroke.Color = Color3.fromRGB(255, 190, 50)
+menuStroke.Thickness = 2
+menuStroke.Parent = menu
 
-local closeButton = create("TextButton", {
-    Size = UDim2.fromOffset(34, 34),
-    Position = UDim2.new(1, -39, 0, 5),
-    BackgroundColor3 = Color3.fromRGB(120, 45, 40),
-    Text = "X",
-    TextColor3 = Color3.new(1, 1, 1),
-    TextSize = 16,
-    Font = Enum.Font.GothamBold
-}, header)
-roundify(closeButton, 8)
-makeDraggable(menu, header)
+-- Header
+local header = Instance.new("Frame")
+header.Size = UDim2.new(1, 0, 0, 45)
+header.BackgroundColor3 = Color3.fromRGB(39, 34, 25)
+header.ZIndex = 3
+header.Parent = menu
 
--- Tabs
-local tabBar = create("Frame", {
-    Size = UDim2.new(1, -20, 0, 38),
-    Position = UDim2.fromOffset(10, 55),
-    BackgroundTransparency = 1
-}, menu)
+local headerCorner = Instance.new("UICorner")
+headerCorner.CornerRadius = UDim.new(0, 12)
+headerCorner.Parent = header
 
-local function makeTab(name, position)
-    local tab = create("TextButton", {
-        Size = UDim2.new(1/3, -6, 1, 0),
-        Position = position,
-        BackgroundColor3 = Color3.fromRGB(48, 48, 55),
-        Text = name,
-        TextColor3 = Color3.new(1, 1, 1),
-        TextSize = 13,
-        Font = Enum.Font.GothamBold
-    }, tabBar)
-    roundify(tab, 8)
-    return tab
-end
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, -55, 1, 0)
+title.Position = UDim2.fromOffset(12, 0)
+title.BackgroundTransparency = 1
+title.Text = "🍍 PINEAPPLESCRIPTS"
+title.TextColor3 = Color3.fromRGB(255, 205, 70)
+title.TextSize = 18
+title.Font = Enum.Font.GothamBold
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.ZIndex = 4
+title.Parent = header
 
-local movementTab = makeTab("Movement", UDim2.new(0, 0, 0, 0))
-local visualTab = makeTab("Visual", UDim2.new(1/3, 3, 0, 0))
-local combatTab = makeTab("Combat", UDim2.new(2/3, 6, 0, 0))
+local closeButton = Instance.new("TextButton")
+closeButton.Size = UDim2.fromOffset(34, 34)
+closeButton.Position = UDim2.new(1, -39, 0, 5)
+closeButton.BackgroundColor3 = Color3.fromRGB(120, 45, 40)
+closeButton.Text = "X"
+closeButton.TextColor3 = Color3.new(1, 1, 1)
+closeButton.TextSize = 16
+closeButton.Font = Enum.Font.GothamBold
+closeButton.ZIndex = 4
+closeButton.Parent = header
 
-local pages = create("Frame", {
-    Size = UDim2.new(1, -20, 1, -108),
-    Position = UDim2.fromOffset(10, 100),
-    BackgroundTransparency = 1
-}, menu)
+local closeCorner = Instance.new("UICorner")
+closeCorner.CornerRadius = UDim.new(0, 8)
+closeCorner.Parent = closeButton
 
-local function makePage()
-    return create("Frame", {
-        Size = UDim2.fromScale(1, 1),
-        BackgroundTransparency = 1,
-        Visible = false
-    }, pages)
-end
+-- Menu content
+local message = Instance.new("TextLabel")
+message.Size = UDim2.new(1, -30, 1, -65)
+message.Position = UDim2.fromOffset(15, 55)
+message.BackgroundTransparency = 1
+message.Text = "PineappleScripts GUI is working!\n\nIf you can see this, the button and menu loaded correctly."
+message.TextColor3 = Color3.new(1, 1, 1)
+message.TextSize = 16
+message.Font = Enum.Font.Gotham
+message.TextWrapped = true
+message.ZIndex = 3
+message.Parent = menu
 
-local movementPage = makePage()
-local visualPage = makePage()
-local combatPage = makePage()
-
--- Movement slider
-create("TextLabel", {
-    Size = UDim2.new(1, 0, 0, 32),
-    BackgroundTransparency = 1,
-    Text = "WalkSpeed multiplier",
-    TextColor3 = Color3.new(1, 1, 1),
-    TextSize = 15,
-    Font = Enum.Font.Gotham,
-    TextXAlignment = Enum.TextXAlignment.Left
-}, movementPage)
-
-local speedLabel = create("TextLabel", {
-    Size = UDim2.new(1, 0, 0, 28),
-    Position = UDim2.fromOffset(0, 35),
-    BackgroundTransparency = 1,
-    Text = "Speed: 1.0x",
-    TextColor3 = Color3.fromRGB(255, 205, 70),
-    TextSize = 14,
-    Font = Enum.Font.GothamBold,
-    TextXAlignment = Enum.TextXAlignment.Left
-}, movementPage)
-
-local track = create("Frame", {
-    Size = UDim2.new(1, -10, 0, 10),
-    Position = UDim2.fromOffset(5, 75),
-    BackgroundColor3 = Color3.fromRGB(65, 65, 72)
-}, movementPage)
-roundify(track, 5)
-
-local fill = create("Frame", {
-    Size = UDim2.new(0, 0, 1, 0),
-    BackgroundColor3 = Color3.fromRGB(255, 190, 50)
-}, track)
-roundify(fill, 5)
-
-local knob = create("TextButton", {
-    Size = UDim2.fromOffset(20, 20),
-    Position = UDim2.new(0, -10, 0.5, -10),
-    BackgroundColor3 = Color3.fromRGB(255, 220, 120),
-    Text = ""
-}, track)
-roundify(knob, 10)
-outline(knob)
-
-local function applySpeed()
-    local character = localPlayer.Character
-    local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-    if humanoid then
-        humanoid.WalkSpeed = 16 * speedMultiplier
-    end
-end
-
-local function updateSlider(value)
-    speedMultiplier = math.clamp(value, 1, 5)
-    local fraction = (speedMultiplier - 1) / 4
-    fill.Size = UDim2.new(fraction, 0, 1, 0)
-    knob.Position = UDim2.new(fraction, -10, 0.5, -10)
-    speedLabel.Text = string.format("Speed: %.1fx", speedMultiplier)
-    applySpeed()
-end
-
-local sliderDragging = false
-
-local function setSliderFromX(x)
-    local width = track.AbsoluteSize.X
-    if width <= 0 then return end
-    local fraction = math.clamp(
-        (x - track.AbsolutePosition.X) / width, 0, 1
-    )
-    updateSlider(1 + fraction * 4)
-end
-
-knob.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1
-        or input.UserInputType == Enum.UserInputType.Touch then
-        sliderDragging = true
-    end
-end)
-
-track.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1
-        or input.UserInputType == Enum.UserInputType.Touch then
-        sliderDragging = true
-        setSliderFromX(input.Position.X)
-    end
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-    if sliderDragging and (
-        input.UserInputType == Enum.UserInputType.MouseMovement
-        or input.UserInputType == Enum.UserInputType.Touch
-    ) then
-        setSliderFromX(input.Position.X)
-    end
-end)
-
-UserInputService.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1
-        or input.UserInputType == Enum.UserInputType.Touch then
-        sliderDragging = false
-    end
-end)
-
-localPlayer.CharacterAdded:Connect(function()
-    task.wait(0.25)
-    applySpeed()
-end)
-
--- Visual player highlights
-local highlightButton = create("TextButton", {
-    Size = UDim2.new(1, 0, 0, 42),
-    Position = UDim2.fromOffset(0, 10),
-    BackgroundColor3 = Color3.fromRGB(48, 48, 55),
-    Text = "Player Highlights: OFF",
-    TextColor3 = Color3.new(1, 1, 1),
-    TextSize = 14,
-    Font = Enum.Font.GothamBold
-}, visualPage)
-roundify(highlightButton, 8)
-outline(highlightButton, Color3.fromRGB(255, 190, 50), 1)
-
-local function setPlayerHighlight(player)
-    if not highlightEnabled or not player.Character then return end
-
-    local character = player.Character
-    local highlight = character:FindFirstChild("PineappleHighlight")
-
-    if not highlight or not highlight:IsA("Highlight") then
-        highlight = Instance.new("Highlight")
-        highlight.Name = "PineappleHighlight"
-        highlight.Parent = character
-    end
-
-    highlight.Adornee = character
-    highlight.FillColor = Color3.fromRGB(255, 190, 50)
-    highlight.OutlineColor = Color3.fromRGB(255, 245, 200)
-    highlight.FillTransparency = 0.55
-    highlight.OutlineTransparency = 0
-    highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-end
-
-local function removePlayerHighlight(player)
-    if player.Character then
-        local highlight = player.Character:FindFirstChild("PineappleHighlight")
-        if highlight then highlight:Destroy() end
-    end
-end
-
-local function watchPlayer(player)
-    if playerConnections[player] then
-        playerConnections[player]:Disconnect()
-    end
-
-    playerConnections[player] = player.CharacterAdded:Connect(function()
-        task.wait(0.2)
-        setPlayerHighlight(player)
-    end)
-
-    setPlayerHighlight(player)
-end
-
-for _, player in ipairs(Players:GetPlayers()) do
-    watchPlayer(player)
-end
-
-Players.PlayerAdded:Connect(watchPlayer)
-Players.PlayerRemoving:Connect(function(player)
-    removePlayerHighlight(player)
-    if playerConnections[player] then
-        playerConnections[player]:Disconnect()
-        playerConnections[player] = nil
-    end
-end)
-
-highlightButton.Activated:Connect(function()
-    highlightEnabled = not highlightEnabled
-    highlightButton.Text = "Player Highlights: " ..
-        (highlightEnabled and "ON" or "OFF")
-    highlightButton.BackgroundColor3 = highlightEnabled
-        and Color3.fromRGB(125, 95, 30)
-        or Color3.fromRGB(48, 48, 55)
-
-    if highlightEnabled then
-        for _, player in ipairs(Players:GetPlayers()) do
-            setPlayerHighlight(player)
-        end
-    else
-        for _, player in ipairs(Players:GetPlayers()) do
-            removePlayerHighlight(player)
-        end
-    end
-end)
-
--- Combat: Lock On toggle
-create("TextLabel", {
-    Size = UDim2.new(1, 0, 0, 35),
-    BackgroundTransparency = 1,
-    Text = "Combat Settings",
-    TextColor3 = Color3.new(1, 1, 1),
-    TextSize = 15,
-    Font = Enum.Font.Gotham,
-    TextXAlignment = Enum.TextXAlignment.Left
-}, combatPage)
-
-create("TextLabel", {
-    Size = UDim2.new(1, -85, 0, 42),
-    Position = UDim2.fromOffset(0, 42),
-    BackgroundTransparency = 1,
-    Text = "Lock On",
-    TextColor3 = Color3.new(1, 1, 1),
-    TextSize = 15,
-    Font = Enum.Font.GothamBold,
-    TextXAlignment = Enum.TextXAlignment.Left
-}, combatPage)
-
-local lockSwitch = create("TextButton", {
-    Size = UDim2.fromOffset(58, 30),
-    Position = UDim2.new(1, -62, 0, 48),
-    BackgroundColor3 = Color3.fromRGB(65, 65, 72),
-    Text = "",
-    AutoButtonColor = false
-}, combatPage)
-roundify(lockSwitch, 15)
-
-local switchKnob = create("Frame", {
-    Size = UDim2.fromOffset(22, 22),
-    Position = UDim2.fromOffset(4, 4),
-    BackgroundColor3 = Color3.new(1, 1, 1)
-}, lockSwitch)
-roundify(switchKnob, 11)
-
-local lockStatus = create("TextLabel", {
-    Size = UDim2.new(1, 0, 0, 25),
-    Position = UDim2.fromOffset(0, 85),
-    BackgroundTransparency = 1,
-    Text = "Lock On: OFF",
-    TextColor3 = Color3.fromRGB(190, 190, 190),
-    TextSize = 13,
-    Font = Enum.Font.Gotham,
-    TextXAlignment = Enum.TextXAlignment.Left
-}, combatPage)
-
-local function getNearestPlayer()
-    local character = localPlayer.Character
-    local myRoot = character and character:FindFirstChild("HumanoidRootPart")
-    if not myRoot then return nil end
-
-    local nearest
-    local nearestDistance = math.huge
-
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= localPlayer and player.Character then
-            local root = player.Character:FindFirstChild("HumanoidRootPart")
-            local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
-
-            if root and humanoid and humanoid.Health > 0 then
-                local distance = (root.Position - myRoot.Position).Magnitude
-                if distance < nearestDistance then
-                    nearest = player
-                    nearestDistance = distance
-                end
-            end
-        end
-    end
-
-    return nearest
-end
-
-local function stopLockOn()
-    lockOnEnabled = false
-    lockTarget = nil
-    lockSwitch.BackgroundColor3 = Color3.fromRGB(65, 65, 72)
-    switchKnob.Position = UDim2.fromOffset(4, 4)
-    lockStatus.Text = "Lock On: OFF"
-    lockStatus.TextColor3 = Color3.fromRGB(190, 190, 190)
-end
-
-local function startLockOn()
-    lockTarget = getNearestPlayer()
-    lockOnEnabled = lockTarget ~= nil
-
-    if lockOnEnabled then
-        lockSwitch.BackgroundColor3 = Color3.fromRGB(255, 190, 50)
-        switchKnob.Position = UDim2.new(1, -26, 0, 4)
-        lockStatus.Text = "Locked on: " .. lockTarget.DisplayName
-        lockStatus.TextColor3 = Color3.fromRGB(255, 205, 70)
-    else
-        lockStatus.Text = "Lock On: no player available"
-        lockStatus.TextColor3 = Color3.fromRGB(255, 130, 100)
-    end
-end
-
-lockSwitch.Activated:Connect(function()
-    if lockOnEnabled then
-        stopLockOn()
-    else
-        startLockOn()
-    end
-end)
-
--- Follow the target with the camera while enabled.
--- The mouse cursor itself remains under Roblox's normal cursor controls.
-local cameraConnection = RunService.RenderStepped:Connect(function()
-    if not lockOnEnabled then return end
-
-    local camera = workspace.CurrentCamera
-    local target = lockTarget
-    local character = target and target.Character
-    local targetRoot = character and character:FindFirstChild("HumanoidRootPart")
-    local targetHumanoid = character and character:FindFirstChildOfClass("Humanoid")
-
-    if not camera or not targetRoot or not targetHumanoid
-        or targetHumanoid.Health <= 0 then
-        stopLockOn()
-        return
-    end
-
-    local cameraPosition = camera.CFrame.Position
-    local aimPosition = targetRoot.Position + Vector3.new(0, 1.5, 0)
-    camera.CFrame = CFrame.lookAt(cameraPosition, aimPosition)
-    lockStatus.Text = "Locked on: " .. target.DisplayName
-end)
-
-local function showTab(name)
-    movementPage.Visible = name == "Movement"
-    visualPage.Visible = name == "Visual"
-    combatPage.Visible = name == "Combat"
-
-    for _, info in ipairs({
-        {movementTab, "Movement"},
-        {visualTab, "Visual"},
-        {combatTab, "Combat"}
-    }) do
-        local active = info[2] == name
-        info[1].BackgroundColor3 = active
-            and Color3.fromRGB(255, 190, 50)
-            or Color3.fromRGB(48, 48, 55)
-        info[1].TextColor3 = active
-            and Color3.fromRGB(25, 25, 25)
-            or Color3.new(1, 1, 1)
-    end
-end
-
-movementTab.Activated:Connect(function()
-    showTab("Movement")
-end)
-
-visualTab.Activated:Connect(function()
-    showTab("Visual")
-end)
-
-combatTab.Activated:Connect(function()
-    showTab("Combat")
-end)
-
+-- Toggle menu
 pineapple.Activated:Connect(function()
     menu.Visible = not menu.Visible
 end)
@@ -544,16 +127,47 @@ closeButton.Activated:Connect(function()
     menu.Visible = false
 end)
 
-gui.Destroying:Connect(function()
-    if cameraConnection then
-        cameraConnection:Disconnect()
-    end
+-- Drag the pineapple button
+local dragging = false
+local dragStart
+local startPosition
+local moved = false
 
-    local camera = workspace.CurrentCamera
-    if camera then
-        camera.CameraType = Enum.CameraType.Custom
+pineapple.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        moved = false
+        dragStart = input.Position
+        startPosition = pineapple.Position
     end
 end)
 
-updateSlider(1)
-showTab("Movement")
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and (
+        input.UserInputType == Enum.UserInputType.MouseMovement
+        or input.UserInputType == Enum.UserInputType.Touch
+    ) then
+        local delta = input.Position - dragStart
+
+        if math.abs(delta.X) > 5 or math.abs(delta.Y) > 5 then
+            moved = true
+        end
+
+        pineapple.Position = UDim2.new(
+            startPosition.X.Scale,
+            startPosition.X.Offset + delta.X,
+            startPosition.Y.Scale,
+            startPosition.Y.Offset + delta.Y
+        )
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = false
+    end
+end)
+
+print("PineappleScripts GUI loaded successfully")
